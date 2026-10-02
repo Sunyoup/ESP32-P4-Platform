@@ -94,12 +94,15 @@ menu "Board Support Package(ESP32-P4)"
 
         choice BSP_LCD_COLOR_FORMAT
             prompt "Select LCD color format"
+            default BSP_LCD_COLOR_FORMAT_RGB888 if BSP_LCD_TYPE_1280_720_7_INCH_H
             default BSP_LCD_COLOR_FORMAT_RGB565
             help
                 Select the LCD color format RGB565/RGB888.
+                The Waveshare 7inch DSI LCD (H) only accepts RGB888.
 
             config BSP_LCD_COLOR_FORMAT_RGB565
                 bool "RGB565"
+                depends on !BSP_LCD_TYPE_1280_720_7_INCH_H
             config BSP_LCD_COLOR_FORMAT_RGB888
                 bool "RGB888"
         endchoice   
@@ -123,6 +126,8 @@ menu "Board Support Package(ESP32-P4)"
                 bool "Waveshare 7-DSI-TOUCH-A Display"
             config BSP_LCD_TYPE_1024_600_7_INCH_C
                 bool "Waveshare 7-DSI-TOUCH-C Display"
+            config BSP_LCD_TYPE_1280_720_7_INCH_H
+                bool "Waveshare 7inch DSI LCD (H) Display"
             config BSP_LCD_TYPE_800_1280_8_INCH_A
                 bool "Waveshare 8-DSI-TOUCH-A Display"
             config BSP_LCD_TYPE_480_1920_8_8_INCH_A

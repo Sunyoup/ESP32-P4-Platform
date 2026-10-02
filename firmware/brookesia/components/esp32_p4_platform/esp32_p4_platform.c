@@ -21,6 +21,8 @@
 #include "esp_lcd_ili9881c.h"
 #elif CONFIG_BSP_LCD_TYPE_1024_600_7_INCH_C
 #include "esp_lcd_ek79007.h"
+#elif CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H
+#include "esp_lcd_dsi.h"
 #elif CONFIG_BSP_LCD_TYPE_720_1280_5_INCH_A
 #include "esp_lcd_hx8394.h"
 #elif CONFIG_BSP_LCD_TYPE_480_800_4_INCH_A || CONFIG_BSP_LCD_TYPE_480_800_4_3_INCH_A
@@ -33,6 +35,10 @@
 #include "esp_lcd_touch_gt911.h"
 #include "bsp_err_check.h"
 #include "esp_codec_dev_defaults.h"
+
+#if CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H && (BSP_CONFIG_NO_GRAPHIC_LIB == 0) && (LV_COLOR_DEPTH != 24)
+#error "Waveshare 7inch DSI LCD (H) only accepts RGB888, please set CONFIG_LV_COLOR_DEPTH_24=y"
+#endif
 
 static const char *TAG = "ESP32_P4_PLATFORM";
 #if CONFIG_BSP_LCD_TYPE_480_800_4_3_INCH_A
@@ -453,8 +459,13 @@ esp_err_t bsp_display_brightness_set(int brightness_percent)
 
     uint8_t data = (uint8_t)(255 * brightness_percent * 0.01);
     uint8_t chip_addr = 0x45;
+#if CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H
+    // The PWM register of this panel is inverted and takes effect once latched by 0xAA
+    uint8_t data_to_send[][2] = {{0xAB, 0xFF - data}, {0xAA, 0x01}};
+#else
     uint8_t data_addr = 0x96;
-    uint8_t data_to_send[2] = {data_addr, data};
+    uint8_t data_to_send[][2] = {{data_addr, data}};
+#endif
 
     i2c_device_config_t i2c_dev_conf = {
         .scl_speed_hz = 100 * 1000,
@@ -467,16 +478,15 @@ esp_err_t bsp_display_brightness_set(int brightness_percent)
         return ESP_FAIL;
     }
 
-    esp_err_t ret = i2c_master_transmit(dev_handle, data_to_send, sizeof(data_to_send), 50);
-    if (ret != ESP_OK)
+    esp_err_t ret = ESP_OK;
+    for (size_t i = 0; i < sizeof(data_to_send) / sizeof(data_to_send[0]) && ret == ESP_OK; i++)
     {
-        i2c_master_bus_rm_device(dev_handle);
-        return ret;
+        ret = i2c_master_transmit(dev_handle, data_to_send[i], sizeof(data_to_send[i]), 50);
     }
 
     i2c_master_bus_rm_device(dev_handle);
 
-    return ESP_OK;
+    return ret;
 }
 
 esp_err_t bsp_display_backlight_off(void)
@@ -700,6 +710,28 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
     };
     ESP_GOTO_ON_ERROR(esp_lcd_new_panel_ek79007(io, &lcd_dev_config, &disp_panel), err, TAG, "New LCD panel EK79007 failed");
     ESP_GOTO_ON_ERROR(esp_lcd_panel_reset(disp_panel), err, TAG, "LCD panel reset failed");
+    ESP_GOTO_ON_ERROR(esp_lcd_panel_init(disp_panel), err, TAG, "LCD panel init failed");
+#elif CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H
+    ESP_LOGI(TAG, "Install Waveshare 7inch DSI LCD (H) control panel");
+    // esp_lcd_dsi powers the panel through I2C_NUM_1 on GPIO7/GPIO8 and reuses the bus the BSP installed there
+    _Static_assert(BSP_I2C_NUM == 1, "7inch DSI LCD (H) needs CONFIG_BSP_I2C_NUM=1");
+    esp_lcd_dpi_panel_config_t dpi_config = DSI_PANEL_DPI_7_INCH_H_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB888);
+    dpi_config.out_color_format = LCD_COLOR_FMT_RGB888;
+    dpi_config.num_fbs = CONFIG_BSP_LCD_DPI_BUFFER_NUMS;
+
+    dsi_vendor_config_t vendor_config = {
+        .mipi_config = {
+            .dsi_bus = mipi_dsi_bus,
+            .dpi_config = &dpi_config,
+        },
+    };
+    esp_lcd_panel_dev_config_t lcd_dev_config = {
+        .bits_per_pixel = 24,
+        .rgb_ele_order = BSP_LCD_COLOR_SPACE,
+        .reset_gpio_num = BSP_LCD_RST,
+        .vendor_config = &vendor_config,
+    };
+    ESP_GOTO_ON_ERROR(esp_lcd_new_panel_dsi(io, &lcd_dev_config, &disp_panel), err, TAG, "New LCD panel DSI failed");
     ESP_GOTO_ON_ERROR(esp_lcd_panel_init(disp_panel), err, TAG, "LCD panel init failed");
 #elif CONFIG_BSP_LCD_TYPE_720_1280_5_INCH_A
     ESP_LOGI(TAG, "Install Waveshare 5-DSI-TOUCH-A LCD control panel");

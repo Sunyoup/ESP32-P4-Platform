@@ -20,6 +20,7 @@ Selection LCD display `Board Support Package(ESP32-P4) --> Display --> Select LC
 - Waveshare 5-DSI-Touch-A Display
 - Waveshare 7-DSI-TOUCH-A Display
 - Waveshare 7-DSI-TOUCH-C Display
+- Waveshare 7inch DSI LCD (H) Display (RGB888 only)
 - Waveshare 8-DSI-TOUCH-A Display
 - Waveshare 8.8-DSI-TOUCH-A Display
 - Waveshare 9-DSI-Touch-B Display

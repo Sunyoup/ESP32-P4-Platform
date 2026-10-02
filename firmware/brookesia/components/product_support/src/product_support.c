@@ -36,7 +36,11 @@ static void *audio_idle_cb_user_data = NULL;
 static char audio_file_path[128];
 
 #define PRODUCT_BRIGHTNESS_I2C_ADDR    (0x45)
+#if CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H
+#define PRODUCT_BRIGHTNESS_REG         (0xAB)   // inverted PWM value
+#else
 #define PRODUCT_BRIGHTNESS_REG         (0x96)
+#endif
 #define PRODUCT_BRIGHTNESS_DEFAULT     (100)
 
 /**************************************************************************************************
@@ -103,6 +107,10 @@ int product_display_brightness_get(void)
         ESP_LOGW(TAG, "brightness get: read i2c register failed, %s", esp_err_to_name(ret));
         return PRODUCT_BRIGHTNESS_DEFAULT;
     }
+
+#if CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H
+    data = 0xFF - data;
+#endif
 
     return (data * 100 + 127) / 255;
 }
