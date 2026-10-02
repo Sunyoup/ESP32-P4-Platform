@@ -47,14 +47,6 @@ LV_IMG_DECLARE(img_app_camera);
 #error "Unsupported BSP LCD color format"
 #endif
 
-#ifdef CONFIG_CAMERA_OV5647_MIPI_RAW8_800x1280_50FPS
-#define CAMERA_FALLBACK_CAPTURE_WIDTH  800
-#define CAMERA_FALLBACK_CAPTURE_HEIGHT 1280
-#else
-#define CAMERA_FALLBACK_CAPTURE_WIDTH  BSP_LCD_H_RES
-#define CAMERA_FALLBACK_CAPTURE_HEIGHT BSP_LCD_V_RES
-#endif
-
 namespace esp_brookesia::apps
 {
     struct CoverCropConfig {
@@ -293,7 +285,18 @@ namespace esp_brookesia::apps
             return ESP_FAIL;
         }
 
+        // The sensor mode is fixed by Kconfig, remember its native size as the fallback capture size.
         struct v4l2_format format = {};
+        format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (ioctl(_video_fd, VIDIOC_G_FMT, &format) != 0) {
+            ESP_LOGE(ESP_UTILS_LOG_TAG, "VIDIOC_G_FMT failed");
+            ::close(_video_fd);
+            _video_fd = -1;
+            return ESP_FAIL;
+        }
+        const uint32_t native_width = format.fmt.pix.width;
+        const uint32_t native_height = format.fmt.pix.height;
+
         auto set_capture_format = [&](uint32_t width, uint32_t height) -> bool {
             memset(&format, 0, sizeof(format));
             format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -313,15 +316,15 @@ namespace esp_brookesia::apps
                 "VIDIOC_S_FMT %" PRIu32 "x%" PRIu32 " failed, trying fallback %" PRIu32 "x%" PRIu32,
                 static_cast<uint32_t>(BSP_LCD_H_RES),
                 static_cast<uint32_t>(BSP_LCD_V_RES),
-                static_cast<uint32_t>(CAMERA_FALLBACK_CAPTURE_WIDTH),
-                static_cast<uint32_t>(CAMERA_FALLBACK_CAPTURE_HEIGHT)
+                native_width,
+                native_height
             );
-            if (!set_capture_format(CAMERA_FALLBACK_CAPTURE_WIDTH, CAMERA_FALLBACK_CAPTURE_HEIGHT)) {
+            if (!set_capture_format(native_width, native_height)) {
                 ESP_LOGE(
                     ESP_UTILS_LOG_TAG,
                     "VIDIOC_S_FMT fallback %" PRIu32 "x%" PRIu32 " failed",
-                    static_cast<uint32_t>(CAMERA_FALLBACK_CAPTURE_WIDTH),
-                    static_cast<uint32_t>(CAMERA_FALLBACK_CAPTURE_HEIGHT)
+                    native_width,
+                    native_height
                 );
                 ::close(_video_fd);
                 _video_fd = -1;
