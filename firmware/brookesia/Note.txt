@@ -133,6 +133,17 @@ step12_ethernet
       main.cpp 끝부분에서 호출한다.
     - 네트워크 스택과 기본 이벤트 루프는 Settings 앱의 Wi-Fi 초기화와 공유한다.
 
+step13_timezone
+    Wi-Fi 로 NTP 시각을 맞추면 한 시간 느리게 표시됐다. Settings 앱이 시간대를
+    "CST-8" (중국 표준시, UTC+8) 로, NTP 서버를 ntp.aliyun.com 으로 고정해 두었기
+    때문이다.
+    - components/Settings/Kconfig 추가: CONFIG_SETTINGS_TIMEZONE (기본 "CST-8"),
+      CONFIG_SETTINGS_NTP_SERVER (기본 "ntp.aliyun.com"). 기본값은 upstream 과 같다.
+    - sdkconfig.7_dsi_lcd_h.defaults 에서 "KST-9" (한국 표준시, UTC+9) 와
+      "pool.ntp.org" 로 지정.
+    - 시각 동기화는 Wi-Fi 가 주소를 받았을 때 시작한다. 유선 랜만 연결된 상태에서는
+      동기화하지 않는다.
+
 
 5. 화면 깜빡임 (DSI underrun)
 -----------------------------

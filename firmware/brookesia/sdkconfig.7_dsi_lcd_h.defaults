@@ -8,3 +8,6 @@ CONFIG_BSP_LCD_COLOR_FORMAT_RGB888=y
 CONFIG_LV_COLOR_DEPTH_24=y
 # Full field of view 4:3 sensor mode, the camera app shows its 1280x720 centre without scaling.
 CONFIG_CAMERA_OV5647_MIPI_RAW10_1280x960_BINNING_45FPS=y
+# Korea Standard Time for the status bar clock, synced from the NTP pool.
+CONFIG_SETTINGS_TIMEZONE="KST-9"
+CONFIG_SETTINGS_NTP_SERVER="pool.ntp.org"

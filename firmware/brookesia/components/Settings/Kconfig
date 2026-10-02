@@ -1,0 +1,12 @@
+menu "Settings App"
+    config SETTINGS_TIMEZONE
+        string "Time zone applied after SNTP time sync"
+        default "CST-8"
+        help
+            POSIX TZ string, e.g. "CST-8" for China Standard Time (UTC+8)
+            or "KST-9" for Korea Standard Time (UTC+9).
+
+    config SETTINGS_NTP_SERVER
+        string "NTP server used for SNTP time sync"
+        default "ntp.aliyun.com"
+endmenu

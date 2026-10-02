@@ -42,10 +42,10 @@ namespace esp_brookesia::apps
     static void time_sync_notification_cb(struct timeval *tv)
     {
         (void)tv;
-        setenv("TZ", "CST-8", 1);
+        setenv("TZ", CONFIG_SETTINGS_TIMEZONE, 1);
         tzset();
         s_time_synced = true;
-        ESP_UTILS_LOGI("SNTP time synced, timezone CST-8 applied");
+        ESP_UTILS_LOGI("SNTP time synced, timezone %s applied", CONFIG_SETTINGS_TIMEZONE);
     }
 
     static void start_time_sync_once()
@@ -57,7 +57,7 @@ namespace esp_brookesia::apps
         // Time sync is started lazily after Wi-Fi obtains an IP address, which avoids
         // SNTP retries before the network stack is ready.
         esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-        esp_sntp_setservername(0, "ntp.aliyun.com");
+        esp_sntp_setservername(0, CONFIG_SETTINGS_NTP_SERVER);
         esp_sntp_set_time_sync_notification_cb(time_sync_notification_cb);
         esp_sntp_init();
         s_time_sync_started = true;
