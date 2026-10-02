@@ -8,6 +8,8 @@
 #include "esp_lcd_types.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "esp_async_memcpy.h"
 #include "lvgl.h"
 #include "sdkconfig.h"
 
@@ -38,11 +40,14 @@ namespace esp_brookesia::apps
         static constexpr int PREVIEW_TASK_STACK_SIZE = 8 * 1024;
         static constexpr int PREVIEW_TASK_PRIORITY = 8;
         static constexpr int SWIPE_EXIT_THRESHOLD = 180;
+        static constexpr size_t DMA_COPY_CHUNK_SIZE = 256 * 1024;
 
         lv_obj_t *_status_label = nullptr;
         lv_display_t *_display = nullptr;
         esp_lcd_panel_handle_t _display_panel = nullptr;
         ppa_client_handle_t _ppa_srm_handle = nullptr;
+        async_memcpy_handle_t _async_memcpy = nullptr;
+        SemaphoreHandle_t _copy_done = nullptr;
         esp_lcd_touch_handle_t _touch_handle = nullptr;
 
         TaskHandle_t _preview_task_handle = nullptr;
@@ -62,6 +67,7 @@ namespace esp_brookesia::apps
         size_t _data_cache_line_size = 64;
         void *_camera_buffers[CAMERA_BUFFER_COUNT] = {};
         void *_lcd_buffers[CONFIG_BSP_LCD_DPI_BUFFER_NUMS] = {};
+        uint8_t _lcd_buffer_index = 0;
 
         bool startPreview();
         void requestStopPreview();
@@ -76,6 +82,7 @@ namespace esp_brookesia::apps
         void previewTask();
 
         static void previewTaskEntry(void *arg);
+        static bool onCopyDone(async_memcpy_handle_t mcp, async_memcpy_event_t *event, void *cb_args);
     };
 
 } // namespace esp_brookesia::apps

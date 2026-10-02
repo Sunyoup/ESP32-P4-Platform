@@ -379,8 +379,14 @@ namespace esp_brookesia::apps
             }
 
             size_t alloc_size = buf.length ? buf.length : _camera_buffer_size;
+            if (_camera_buffers[i] && _camera_buffer_lengths[i] != alloc_size) {
+                heap_caps_free(_camera_buffers[i]);
+                _camera_buffers[i] = nullptr;
+            }
             _camera_buffer_lengths[i] = alloc_size;
-            _camera_buffers[i] = heap_caps_aligned_calloc(_data_cache_line_size, 1, alloc_size, MALLOC_CAP_SPIRAM);
+            if (!_camera_buffers[i]) {
+                _camera_buffers[i] = heap_caps_aligned_calloc(_data_cache_line_size, 1, alloc_size, MALLOC_CAP_SPIRAM);
+            }
             if (!_camera_buffers[i]) {
                 ESP_LOGE(ESP_UTILS_LOG_TAG, "Camera buffer %d allocation failed", i);
                 return ESP_ERR_NO_MEM;
@@ -419,6 +425,18 @@ namespace esp_brookesia::apps
                 .oper_type = PPA_OPERATION_SRM,
             };
             ESP_RETURN_ON_ERROR(ppa_register_client(&ppa_srm_config, &_ppa_srm_handle), ESP_UTILS_LOG_TAG, "Register PPA SRM failed");
+        }
+
+        if (_async_memcpy == nullptr) {
+            async_memcpy_config_t memcpy_config = ASYNC_MEMCPY_DEFAULT_CONFIG();
+            // The driver keeps the DMA link lists of its last `backlog` transfers in internal RAM
+            memcpy_config.backlog = 1;
+            memcpy_config.dma_burst_size = 64;
+            _copy_done = xSemaphoreCreateBinary();
+            if (!_copy_done || esp_async_memcpy_install_gdma_axi(&memcpy_config, &_async_memcpy) != ESP_OK) {
+                ESP_LOGW(ESP_UTILS_LOG_TAG, "DMA copy is not available, unscaled frames go through PPA");
+                _async_memcpy = nullptr;
+            }
         }
 
         bsp_display_cfg_t touch_cfg = {
@@ -464,14 +482,8 @@ namespace esp_brookesia::apps
 
     void Camera::releaseCameraBuffers()
     {
-        for (int i = 0; i < CAMERA_BUFFER_COUNT; i++) {
-            if (_camera_buffers[i]) {
-                heap_caps_free(_camera_buffers[i]);
-                _camera_buffers[i] = nullptr;
-            }
-            _camera_buffer_lengths[i] = 0;
-        }
-
+        // The capture buffers are kept for the next preview: freeing several megabytes of PSRAM on every
+        // close fragments the heap until they can no longer be allocated.
         if (_video_fd >= 0) {
             ::close(_video_fd);
             _video_fd = -1;
@@ -507,6 +519,13 @@ namespace esp_brookesia::apps
         return dx > SWIPE_EXIT_THRESHOLD || dy > SWIPE_EXIT_THRESHOLD;
     }
 
+    bool Camera::onCopyDone(async_memcpy_handle_t mcp, async_memcpy_event_t *event, void *cb_args)
+    {
+        BaseType_t need_yield = pdFALSE;
+        xSemaphoreGiveFromISR(static_cast<SemaphoreHandle_t>(cb_args), &need_yield);
+        return need_yield == pdTRUE;
+    }
+
     esp_err_t Camera::handleFrame()
     {
         struct v4l2_buffer v4l2_buf = {};
@@ -518,7 +537,9 @@ namespace esp_brookesia::apps
             return ESP_FAIL;
         }
 
-        uint8_t buffer_index = v4l2_buf.index % CONFIG_BSP_LCD_DPI_BUFFER_NUMS;
+        // Rotate over the LCD frame buffers so the one being displayed is never written.
+        uint8_t buffer_index = _lcd_buffer_index;
+        _lcd_buffer_index = (_lcd_buffer_index + 1) % CONFIG_BSP_LCD_DPI_BUFFER_NUMS;
         const uint32_t display_w = BSP_LCD_H_RES;
         const uint32_t display_h = BSP_LCD_V_RES;
         CoverCropConfig crop = computeCoverCrop(_camera_width, _camera_height, display_w, display_h);
@@ -550,7 +571,27 @@ namespace esp_brookesia::apps
         srm_config.byte_swap = 0;
         srm_config.mode = PPA_TRANS_MODE_BLOCKING;
 
-        esp_err_t ret = ppa_do_scale_rotate_mirror(_ppa_srm_handle, &srm_config);
+        esp_err_t ret = ESP_FAIL;
+        const size_t frame_bytes = display_w * display_h * CAMERA_BYTES_PER_PIXEL;
+        uint8_t *block = static_cast<uint8_t *>(_camera_buffers[v4l2_buf.index]) +
+                         crop.offset_y * _camera_width * CAMERA_BYTES_PER_PIXEL;
+        if (_async_memcpy && crop.width == display_w && crop.height == display_h && crop.width == _camera_width &&
+                ((reinterpret_cast<uintptr_t>(block) | frame_bytes) % _data_cache_line_size) == 0) {
+            // Nothing to scale and the rows are contiguous: a DMA copy is faster than a PPA transfer at
+            // scale 1.0. Copy in chunks to keep the DMA link list of a transfer small.
+            uint8_t *dst = static_cast<uint8_t *>(_lcd_buffers[buffer_index]);
+            ret = ESP_OK;
+            for (size_t done = 0; done < frame_bytes && ret == ESP_OK; done += DMA_COPY_CHUNK_SIZE) {
+                size_t chunk = frame_bytes - done < DMA_COPY_CHUNK_SIZE ? frame_bytes - done : DMA_COPY_CHUNK_SIZE;
+                ret = esp_async_memcpy(_async_memcpy, dst + done, block + done, chunk, onCopyDone, _copy_done);
+                if (ret == ESP_OK) {
+                    xSemaphoreTake(_copy_done, portMAX_DELAY);
+                }
+            }
+        }
+        if (ret != ESP_OK) {
+            ret = ppa_do_scale_rotate_mirror(_ppa_srm_handle, &srm_config);
+        }
         if (ret == ESP_OK && _dummy_enabled) {
             ret = esp_lv_adapter_dummy_draw_blit(
                 _display,
