@@ -101,6 +101,19 @@ extern "C" void app_main(void)
     Phone *phone = new (std::nothrow) Phone();
     ESP_UTILS_CHECK_NULL_EXIT(phone, "Create phone failed");
 
+    /* Try using a stylesheet that corresponds to the resolution */
+    Stylesheet *stylesheet = nullptr;
+    if ((BSP_LCD_H_RES == 1280) && (BSP_LCD_V_RES == 720)) {
+        stylesheet = new (std::nothrow) Stylesheet(STYLESHEET_1280_720_DARK);
+        ESP_UTILS_CHECK_NULL_EXIT(stylesheet, "Create stylesheet failed");
+    }
+    if (stylesheet) {
+        ESP_UTILS_LOGI("Using stylesheet (%s)", stylesheet->core.name);
+        ESP_UTILS_CHECK_FALSE_EXIT(phone->addStylesheet(stylesheet), "Add stylesheet failed");
+        ESP_UTILS_CHECK_FALSE_EXIT(phone->activateStylesheet(stylesheet), "Activate stylesheet failed");
+        delete stylesheet;
+    }
+
     {
         // When operating on non-GUI tasks, should acquire a lock before operating on LVGL
         LvLockGuard gui_guard;

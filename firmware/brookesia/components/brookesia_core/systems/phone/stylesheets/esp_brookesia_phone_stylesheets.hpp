@@ -15,4 +15,5 @@
 #include "800_480/dark/stylesheet.hpp"
 #include "800_1280/dark/stylesheet.hpp"
 #include "1024_600/dark/stylesheet.hpp"
+#include "1280_720/dark/stylesheet.hpp"
 #include "1280_800/dark/stylesheet.hpp"
