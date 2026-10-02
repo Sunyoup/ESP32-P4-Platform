@@ -866,6 +866,19 @@ err:
     return ret;
 }
 
+#if CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H
+// The touch panel reports portrait 720x1280 coordinates, rotated by 90 degrees against the 1280x720 picture
+static void bsp_touch_process_coordinates(esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y, uint16_t *strength, uint8_t *point_num, uint8_t max_point_num)
+{
+    for (int i = 0; i < *point_num; i++)
+    {
+        uint16_t touch_x = x[i] < BSP_LCD_V_RES ? x[i] : BSP_LCD_V_RES - 1;
+        x[i] = y[i] < BSP_LCD_H_RES ? y[i] : BSP_LCD_H_RES - 1;
+        y[i] = BSP_LCD_V_RES - 1 - touch_x;
+    }
+}
+#endif
+
 esp_err_t bsp_touch_new(const bsp_display_cfg_t *cfg, esp_lcd_touch_handle_t *ret_touch)
 {
     assert(cfg != NULL);
@@ -879,6 +892,9 @@ esp_err_t bsp_touch_new(const bsp_display_cfg_t *cfg, esp_lcd_touch_handle_t *re
         .y_max = BSP_LCD_V_RES,
         .rst_gpio_num = BSP_LCD_TOUCH_RST, // Shared with LCD reset
         .int_gpio_num = BSP_LCD_TOUCH_INT,
+#if CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H
+        .process_coordinates = bsp_touch_process_coordinates,
+#endif
         .levels = {
             .reset = 0,
             .interrupt = 0,
