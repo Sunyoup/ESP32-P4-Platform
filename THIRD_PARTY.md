@@ -15,6 +15,7 @@ own license terms.
 | `examples/arduino/libraries/displays/gt911.*` and `touch.*` | [Espressif LCD touch components](https://github.com/espressif/esp-bsp/tree/442c9b3f21b3fe23dfe2e7470c14b7e74c956048/components/lcd_touch) | Arduino-adapted under Apache-2.0; source headers and the nearby `NOTICE` retain attribution. The other files in `displays/` are Waveshare integration code covered by the repository license. |
 | `examples/arduino/examples/Audio_Playback/es8311*` | [Espressif ES8311 component `1.0.0~1`](https://github.com/espressif/esp-bsp/tree/4dabefca0599b2249d356cb6a08268dd5e56bbaf/components/es8311) | Apache-2.0 codec source adapted to the Arduino-ESP32 I2C HAL; SPDX headers retain attribution. |
 | `examples/esp-idf/18_esp_brookesia_phone/components/brookesia_core/` | ESP-Brookesia core-related code | Example-local component; see included documentation and metadata. |
+| `firmware/brookesia/components/esp32_p4_platform/` | [`waveshare/esp32_p4_platform` `2.0.1`](https://components.espressif.com/components/waveshare/esp32_p4_platform/versions/2.0.1) | Apache-2.0 BSP copied from the component registry so the firmware can add the 7inch DSI LCD (H) panel; the examples keep using the online component. |
 
 ## Managed Components
 

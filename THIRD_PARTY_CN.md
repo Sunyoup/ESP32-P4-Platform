@@ -13,6 +13,7 @@
 | `examples/arduino/libraries/displays/gt911.*` 和 `touch.*` | [Espressif LCD 触摸组件](https://github.com/espressif/esp-bsp/tree/442c9b3f21b3fe23dfe2e7470c14b7e74c956048/components/lcd_touch) | 按 Apache-2.0 改编至 Arduino；源码头与同目录 `NOTICE` 保留归属说明。`displays/` 中其余文件是受仓库许可证约束的 Waveshare 集成代码。 |
 | `examples/arduino/examples/Audio_Playback/es8311*` | [Espressif ES8311 组件 `1.0.0~1`](https://github.com/espressif/esp-bsp/tree/4dabefca0599b2249d356cb6a08268dd5e56bbaf/components/es8311) | 按 Apache-2.0 改编至 Arduino-ESP32 I2C HAL；SPDX 文件头保留归属说明。 |
 | `examples/esp-idf/18_esp_brookesia_phone/components/brookesia_core/` | ESP-Brookesia 核心相关代码 | 示例本地组件；请参阅随附文档和元数据。 |
+| `firmware/brookesia/components/esp32_p4_platform/` | [`waveshare/esp32_p4_platform` `2.0.1`](https://components.espressif.com/components/waveshare/esp32_p4_platform/versions/2.0.1) | 从组件注册表复制的 Apache-2.0 BSP，使固件可以增加 7inch DSI LCD (H) 面板；示例仍使用在线组件。 |
 
 ## 托管组件
 
