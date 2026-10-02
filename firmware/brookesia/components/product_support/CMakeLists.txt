@@ -1,6 +1,7 @@
 set(SRCS "")
 list(APPEND SRCS
     "src/product_support.c"
+    "src/product_ethernet.c"
 )
 
 set(INCLUDE_DIRS "")
@@ -16,7 +17,7 @@ idf_component_register(
     SRCS ${SRCS}
     INCLUDE_DIRS ${INCLUDE_DIRS}
     REQUIRES driver esp_codec_dev esp32_p4_platform esp-audio-player esp-file-iterator
-    PRIV_REQUIRES esp_timer fatfs esp_psram esp_mm
+    PRIV_REQUIRES esp_timer fatfs esp_psram esp_mm esp_eth esp_netif esp_event
 )
 
 target_compile_options(

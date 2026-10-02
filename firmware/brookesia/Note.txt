@@ -120,6 +120,19 @@ step10_camera_copy
 step11_notes
     이 문서.
 
+step12_ethernet
+    보드의 유선 랜 포트 지원 추가. 원래 펌웨어에는 이더넷 초기화 코드가 없어서
+    랜선을 꽂아도 반응이 없었다.
+    - product_support 에 product_ethernet_start() 추가 (src/product_ethernet.c).
+      내장 EMAC + IP101 PHY, MDC=GPIO31, MDIO=GPIO52, PHY 리셋=GPIO51, PHY 주소 1,
+      RMII 핀은 ESP32-P4 기본값.
+    - 랜선이 꽂히면 DHCP 로 주소를 받는다. 화면에는 표시하지 않고 로그로만 나온다:
+        product_ethernet: Ethernet link up
+        product_ethernet: Ethernet got IP 192.168.x.x, mask ..., gateway ...
+    - 이더넷 시작에 약 2.2초가 걸려서, 화면이 먼저 뜨도록 UI 가 올라온 뒤에
+      main.cpp 끝부분에서 호출한다.
+    - 네트워크 스택과 기본 이벤트 루프는 Settings 앱의 Wi-Fi 초기화와 공유한다.
+
 
 5. 화면 깜빡임 (DSI underrun)
 -----------------------------
@@ -177,6 +190,7 @@ RGB888 이어야 하고, 이것을 200MHz PSRAM 에서 80MHz 픽셀 클럭으로
 - 밝기 슬라이더, 소리 볼륨 슬라이더
 - 카메라 (화각, 방향, 속도, tearing 없음, 반복 실행)
 - Video Player (SD 카드), Music Player
+- 유선 랜: 링크 업 후 DHCP 로 192.168.76.43 을 받는 것을 로그로 확인
 
 
 8. 남은 과제
@@ -185,6 +199,8 @@ RGB888 이어야 하고, 이것을 200MHz PSRAM 에서 80MHz 픽셀 클럭으로
   올릴 수 있을 것으로 보이나, 벤더 타이밍(전후 porch 각 64)을 벗어나므로 패널이
   받아 주는지 실험이 필요하다.
 - Wi-Fi 동작은 확인하지 않았다 (ESP32-C6 와의 SDIO 연결까지는 로그로 확인).
+- 유선 랜은 주소를 받는 것까지만 확인했다. 실제 통신(시간 동기화 등 앱에서의 사용)과
+  Wi-Fi 와 동시에 쓸 때의 경로 우선순위는 확인하지 않았다.
 - firmware/README.md 에는 빌드 방법만 있고 터치/픽셀 클럭/카메라 내용은 없다.
 - 1280_720 스타일시트 수치는 계산으로 정한 것이라 취향에 따라 조정 여지가 있다.
 - 칩 리비전 v3.x 보드에서는 시험하지 않았다.

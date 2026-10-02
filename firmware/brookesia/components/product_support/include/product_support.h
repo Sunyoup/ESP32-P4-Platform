@@ -38,6 +38,17 @@ extern "C" {
 int product_display_brightness_get(void);
 
 /**
+ * @brief Start the on-board Ethernet port.
+ *
+ * The interface gets its address by DHCP once a cable is plugged in.
+ *
+ * @return
+ *    - ESP_OK: Success
+ *    - Others: Fail
+ */
+esp_err_t product_ethernet_start(void);
+
+/**
  * @brief Player set mute.
  *
  * @param enable: true or false

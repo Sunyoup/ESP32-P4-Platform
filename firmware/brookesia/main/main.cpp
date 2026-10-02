@@ -173,6 +173,11 @@ extern "C" void app_main(void)
         }, 1000, phone);
     }
 
+    /* Starting the Ethernet port takes about two seconds, so do it once the UI is on screen */
+    if (product_ethernet_start() != ESP_OK) {
+        ESP_UTILS_LOGW("Ethernet is not available");
+    }
+
     if constexpr (EXAMPLE_SHOW_MEM_INFO) {
         esp_utils::thread_config_guard thread_config({
             .name = "mem_info",
