@@ -27,7 +27,29 @@ idf.py set-target esp32p4
 idf.py build
 ```
 
-The firmware project resolves LVGL and `waveshare/esp32_p4_platform` from the ESP-IDF Component Registry.
+The firmware project resolves LVGL from the ESP-IDF Component Registry and
+uses the BSP copy in `brookesia/components/esp32_p4_platform`, which is
+`waveshare/esp32_p4_platform` 2.0.1 plus the 7inch DSI LCD (H) panel.
+
+### 7inch DSI LCD (H)
+
+The [7inch DSI LCD (H)](https://www.waveshare.com/wiki/7inch_DSI_LCD_(H)) is a
+1280 x 720 landscape panel that only accepts RGB888. Select it by adding
+`sdkconfig.7_dsi_lcd_h.defaults` after a chip revision profile. For an
+ESP32-P4-Module-DEV-KIT with rev v1.x silicon and 16 MB flash:
+
+```sh
+cd firmware/brookesia
+idf.py -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;sdkconfig.rev1_3.defaults;sdkconfig.7_dsi_lcd_h.defaults" build
+```
+
+Use `sdkconfig.rev3_x.defaults` instead for rev v3.x silicon. Delete an existing
+`sdkconfig` first, otherwise it overrides the defaults. This firmware project
+builds with ESP-IDF v5.5.x; ESP-IDF v6 no longer ships the `json` component
+that `brookesia_core` requires.
+
+The profile sets the LCD type, RGB888 with 24-bit LVGL, and 16 MB flash. The
+phone UI uses the `1280_720` stylesheet for this resolution.
 
 The example CI workflows do not build this maintained firmware project or
 regenerate prebuilt factory packages. Treat existing BIN and ZIP files as
