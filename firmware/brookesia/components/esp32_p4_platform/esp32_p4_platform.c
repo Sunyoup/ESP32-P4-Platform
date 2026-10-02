@@ -717,6 +717,9 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
     _Static_assert(BSP_I2C_NUM == 1, "7inch DSI LCD (H) needs CONFIG_BSP_I2C_NUM=1");
     esp_lcd_dpi_panel_config_t dpi_config = DSI_PANEL_DPI_7_INCH_H_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB888);
     dpi_config.out_color_format = LCD_COLOR_FMT_RGB888;
+    // An RGB888 frame buffer at the 80 MHz of esp_lcd_dsi cannot be fetched from PSRAM fast enough while
+    // LVGL redraws ("underrun" errors, visible flicker), 50 MHz (about 37 Hz) leaves enough bandwidth
+    dpi_config.dpi_clock_freq_mhz = 50;
     dpi_config.num_fbs = CONFIG_BSP_LCD_DPI_BUFFER_NUMS;
 
     dsi_vendor_config_t vendor_config = {
