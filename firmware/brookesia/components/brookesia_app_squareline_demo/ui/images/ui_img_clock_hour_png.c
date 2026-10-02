@@ -34,7 +34,7 @@ const lv_image_dsc_t ui_img_clock_hour_png = {
     .header.w = 5,
     .header.h = 66,
     .data_size = sizeof(ui_img_clock_hour_png_data),
-    .header.cf = LV_COLOR_FORMAT_NATIVE_WITH_ALPHA,
+    .header.cf = LV_COLOR_FORMAT_RGB565A8,
     .header.magic = LV_IMAGE_HEADER_MAGIC,
     .data = ui_img_clock_hour_png_data
 };

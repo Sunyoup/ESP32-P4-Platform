@@ -274,7 +274,7 @@ const lv_image_dsc_t ui_img_sls_logo_png = {
     .header.w = 127,
     .header.h = 127,
     .data_size = sizeof(ui_img_sls_logo_png_data),
-    .header.cf = LV_COLOR_FORMAT_NATIVE,
+    .header.cf = LV_COLOR_FORMAT_RGB565,
     .header.magic = LV_IMAGE_HEADER_MAGIC,
     .data = ui_img_sls_logo_png_data
 };

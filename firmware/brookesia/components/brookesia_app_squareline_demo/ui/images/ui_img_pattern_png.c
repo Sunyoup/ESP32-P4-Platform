@@ -78,7 +78,7 @@ const lv_image_dsc_t ui_img_pattern_png = {
     .header.w = 60,
     .header.h = 60,
     .data_size = sizeof(ui_img_pattern_png_data),
-    .header.cf = LV_COLOR_FORMAT_NATIVE,
+    .header.cf = LV_COLOR_FORMAT_RGB565,
     .header.magic = LV_IMAGE_HEADER_MAGIC,
     .data = ui_img_pattern_png_data
 };
