@@ -1,0 +1,120 @@
+Waveshare 7inch DSI LCD (H) + ESP32-P4-Module-DEV-KIT 에서 lv_demo_benchmark() 측정
+================================================================================
+
+작업일: 2026-10-04
+저장소: https://github.com/Sunyoup/ESP32-P4-Platform
+브랜치: 7-DSI-LCD-H_brookesia_step14_lvgl_demo_v9
+대상:   examples/esp-idf/14_lvgl_demo_v9
+
+하드웨어와 패널의 특성, 이전 단계의 작업은 firmware/brookesia/Note.txt 참고.
+
+
+1. 목적
+-------
+firmware/brookesia 에서 맞춰 놓은 7inch DSI LCD (H) 설정을 그대로 써서 이 예제를
+빌드하고, lv_demo_benchmark() 의 FPS 를 본다.
+
+
+2. 바꾼 것
+----------
+- components/lvgl_demo_support/idf_component.yml
+    waveshare/esp32_p4_platform 2.0.1 에 override_path 를 넣어, 레지스트리 대신
+    firmware/brookesia/components/esp32_p4_platform (이 LCD 타입을 추가한 로컬 BSP)
+    을 쓰게 했다. 픽셀 클럭 50MHz, 터치 좌표 회전, 백라이트 레지스터가 그대로
+    적용된다.
+- sdkconfig.7_dsi_lcd_h.defaults (추가)
+    LCD 타입, RGB888, LVGL 24비트. 벤치마크 요약을 시리얼로 받기 위해 LVGL 로그
+    (CONFIG_LV_USE_LOG, CONFIG_LV_LOG_PRINTF) 도 켰다.
+- main/main.c
+    lv_demo_widgets() 대신 lv_demo_benchmark() 호출.
+
+
+3. 빌드와 플래시
+----------------
+ESP-IDF v5.5.5 (get_idf555).
+
+    cd examples/esp-idf/14_lvgl_demo_v9
+    get_idf555
+    rm -f sdkconfig
+    idf.py -D "SDKCONFIG_DEFAULTS=sdkconfig.defaults;../../../config/esp32p4_rev1_3.defaults;sdkconfig.7_dsi_lcd_h.defaults" build
+
+  - ../../../config/esp32p4_rev1_3.defaults : 칩 리비전 v3.0 미만용 프로파일.
+    SDKCONFIG_DEFAULTS 를 주지 않으면 v3.x 프로파일이 적용된다.
+
+병합 이미지 (저장소에는 올리지 않는다):
+    cd build
+    python -m esptool --chip esp32p4 merge_bin -o ../merged.bin @flash_args
+
+플래시:
+    python -m esptool --chip esp32p4 -p /dev/ttyACM0 -b 921600 write_flash 0x0 merged.bin
+
+이 예제는 파티션 구성이 brookesia 와 달라서 (앱이 0x10000) 구우면 brookesia 가
+덮어써진다. 되돌릴 때는 firmware/brookesia/merged.bin 을 0x0 에 다시 굽는다.
+
+시리얼 콘솔 속도는 115200 baud 이다 (brookesia 는 2,000,000).
+
+
+4. 측정 조건
+------------
+- LVGL 9.6.0 (brookesia 는 9.4.0), esp_lvgl_adapter, 소프트웨어 렌더 유닛 2개
+- 1280x720 RGB888, 프레임버퍼 3개, triple partial tear 방지 모드
+- 픽셀 클럭 50MHz (주사율 약 37Hz)
+- PSRAM 200MHz, XIP from PSRAM, L2 캐시 256KB / 128B 라인
+  (brookesia 는 128KB / 64B)
+- 최적화 -O2 (CONFIG_COMPILER_OPTIMIZATION_PERF)
+- 측정 중 화면은 건드리지 않았다.
+
+
+5. 결과
+-------
+Benchmark Summary (9.6.0)
+
+    장면                         FPS   프레임(ms)  렌더(ms)  flush(ms)
+    Empty screen                  33      23         5        18
+    Moving wallpaper              37      24        13        11
+    Single rectangle              37      25         0        25
+    Multiple rectangles           37      25         3        22
+    Multiple RGB images           37      23        13        10
+    Multiple ARGB images          35      24        17         7
+    Rotated ARGB images           27      33        29         4
+    Multiple labels               36      23        18         5
+    Screen sized text             10      87        81         6
+    Multiple arcs                 30      28        21         7
+    Containers                    37      23         7        16
+    Containers with overlay       15      58        49         9
+    Containers with opa           37      23        11        12
+    Containers with opa_layer     36      23        16         7
+    Containers with scrolling     18      50        44         6
+    Widgets demo                  17      77        71         6
+    전체 평균                     29      34        24        10
+
+측정 중 DSI underrun 은 0회.
+
+읽는 법:
+- 상한은 37 FPS 다. 16개 중 6개 장면이 37 에서 멈추는데, 픽셀 클럭을 50MHz 로
+  낮추면서 정해진 패널 주사율과 같다. 이 장면들은 렌더링이 아니라 주사율에 묶여
+  있다.
+- 느린 장면 (Screen sized text, Containers with overlay, Containers with
+  scrolling, Widgets demo) 은 렌더 시간이 44~81ms 로, 24비트 색을 소프트웨어로
+  그리는 비용이 병목이다.
+- 요약의 CPU 열은 모든 장면에서 100% 로 나오는데 믿을 수 없다. LVGL 의 idle 측정에
+  필요한 FreeRTOS 태스크 전환 훅이 이 예제에 연결되어 있지 않다.
+
+결과에 영향을 준 조건:
+- 위 idle 측정 문제로 LVGL 이 약 0.3초마다 경고 한 줄을 찍었다 (측정 중 225줄).
+    lv_os_get_idle_percent: Not enough time elapsed to provide idle percentage
+  로그를 켜면서 드러난 것이다. 한 줄이 UART FIFO 에 거의 들어가는 길이라 FPS 에
+  주는 영향은 작을 것으로 보지만 따로 재지는 않았다.
+- 벤치마크가 화면에 띄운 경고 세 가지. 모두 예제 기본 설정 그대로다.
+    LV_USE_CHECK_ARG is enabled possibly making the widgets demo slower
+    The draw buffer's size is smaller than 1/10 screen size making rendering slower
+    LV_DRAW_LAYER_SIMPLE_BUF_SIZE is small making opa_layered slow (> 135kB 권장)
+
+
+6. 남은 과제
+------------
+- 경고 로그를 끄고 위 세 가지 설정을 손본 뒤의 재측정은 하지 않았다. 37 에 묶인
+  장면은 오르지 않으므로 평균이 크게 오르지는 않을 것으로 예상한다 (추정).
+- 주사율 상한을 올리는 실험 (porch 축소) 은 나중에 brookesia 쪽에서 하기로 했다.
+- LVGL 의 PPA draw unit 으로 렌더를 가속하는 방법은 시험하지 않았다. RGB888 에서
+  동작하는지 확인이 필요하다.

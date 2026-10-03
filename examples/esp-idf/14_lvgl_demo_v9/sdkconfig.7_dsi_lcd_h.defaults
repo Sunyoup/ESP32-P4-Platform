@@ -1,0 +1,10 @@
+# Waveshare 7inch DSI LCD (H) on an ESP32-P4-Module-DEV-KIT.
+# Apply after the base defaults and a revision profile:
+#   SDKCONFIG_DEFAULTS="sdkconfig.defaults;../../../config/esp32p4_rev1_3.defaults;sdkconfig.7_dsi_lcd_h.defaults"
+CONFIG_BSP_LCD_TYPE_1280_720_7_INCH_H=y
+# The panel only accepts RGB888, so LVGL has to render 24-bit as well.
+CONFIG_BSP_LCD_COLOR_FORMAT_RGB888=y
+CONFIG_LV_COLOR_DEPTH_24=y
+# Print the lv_demo_benchmark() summary on the serial console.
+CONFIG_LV_USE_LOG=y
+CONFIG_LV_LOG_PRINTF=y

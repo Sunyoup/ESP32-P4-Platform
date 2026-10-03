@@ -2,8 +2,10 @@ dependencies:
   idf:
     version: '>=5.5'
 
+  # Local copy of 2.0.1 that adds the Waveshare 7inch DSI LCD (H) as an LCD type
   waveshare/esp32_p4_platform:
     version: "2.0.1"
+    override_path: "../../../../../firmware/brookesia/components/esp32_p4_platform"
 
   chmorgan/esp-audio-player:
     version: "^1.1.0"

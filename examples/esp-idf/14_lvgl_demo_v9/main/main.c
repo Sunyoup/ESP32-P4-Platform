@@ -33,8 +33,8 @@ If you need to use the three-cache anti-tear configuration, you need to fix idf 
     bsp_display_lock(-1);
 
     // lv_demo_music();
-    // lv_demo_benchmark();
-    lv_demo_widgets();
+    lv_demo_benchmark();
+    // lv_demo_widgets();
 
     bsp_display_unlock();
 }
